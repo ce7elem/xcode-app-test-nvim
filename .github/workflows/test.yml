@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-
 env:
   ASAN_OPTIONS: detect_leaks=1:check_initialization_order=1:log_path=${{ github.workspace }}/build/log/asan:intercept_tls_get_addr=0
   BIN_DIR: ${{ github.workspace }}/bin
@@ -15,10 +14,10 @@ env:
   VALGRIND_LOG: ${{ github.workspace }}/build/log/valgrind-%p.log
   # TEST_FILE: test/functional/core/startup_spec.lua
   # TEST_FILTER: foo bar
-
 jobs:
   test:
-    runs-on: macos-15
+    # runs-on: macos-15
+    runs-on: self-hosted
     timeout-minutes: 45
     env:
       CC: clang
@@ -28,10 +27,8 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           install_flags: "--test"
-
       - name: Create log dir
         run: mkdir -p "$LOG_DIR"
-
       - name: Set up interpreter packages
         run: |
           echo "Install neovim RubyGem."
@@ -39,21 +36,17 @@ jobs:
 
           sudo cpanm -n Neovim::Ext || cat "$HOME/.cpanm/build.log"
           perl -W -e 'use Neovim::Ext; print $Neovim::Ext::VERSION'
-
       - name: Build third-party deps
         run: |
           cmake -S cmake.deps --preset ci -D CMAKE_BUILD_TYPE=Debug -D CMAKE_FIND_FRAMEWORK=NEVER
           cmake --build .deps
-
       - name: Build
         run: |
           cmake --preset ci -D CMAKE_BUILD_TYPE=Debug -D CMAKE_INSTALL_PREFIX:PATH=$INSTALL_PREFIX -D CMAKE_FIND_FRAMEWORK=NEVER
           cmake --build build
-
       - name: unittest
         timeout-minutes: 20
         run: cmake --build build --target unittest
-
       - name: Install
         run: |
           cmake --install build
@@ -80,7 +73,6 @@ jobs:
             echo "It appears that $genvimsynf does not contain $gpat."
             exit 1
           fi
-
       - if: '!cancelled()'
         name: Show logs
         run: cat $(find "$LOG_DIR" -type f)
